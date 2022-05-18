@@ -4,7 +4,7 @@ use shelving::SpotifyApi;
 #[tokio::main]
 async fn main() {
     // TODO(ahk): should we just use the `new()` pattern here?
-    let mut spotify: SpotifyApi = Default::default();
+    let mut spotify = SpotifyApi::default();
     spotify.setup_spotify_client().await;
 
     let album_uri = "spotify:album:0sNOF9WDwhWunNAHPD3Baj";

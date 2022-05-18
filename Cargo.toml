@@ -6,6 +6,6 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
-rspotify = { version = "0.11.5", features = ["env-file"] }
+rspotify = { version = "0.11.5", features = ["env-file", "cli"] }
 # used in spotify examples https://github.com/ramsayleung/rspotify/blob/master/Cargo.toml
 tokio = { version = "1.11.0", features = ["rt-multi-thread", "macros"] }

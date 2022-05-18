@@ -1,5 +1,6 @@
-use std::process::exit;
-use rspotify::{model::AlbumId, prelude::*, ClientCredsSpotify, Credentials};
+// use rspotify::{model::AlbumId, prelude::*, ClientCredsSpotify, Credentials, SpotifyOAuth};
+
+use rspotify::{prelude::*, scopes, AuthCodeSpotify, Credentials, OAuth, Config, model::{AlbumId, PlayableItem, track, FullTrack}};
 
 // NOTES:
 // - Looking at the number of individual requests we'll need to make to check if a resource is saved in an account
@@ -16,7 +17,7 @@ use rspotify::{model::AlbumId, prelude::*, ClientCredsSpotify, Credentials};
 #[derive(Clone, Debug, Default)]
 pub struct SpotifyApi {
     is_ready: bool,
-    spotify: ClientCredsSpotify
+    spotify: AuthCodeSpotify
 }
 
 impl SpotifyApi {
@@ -44,44 +45,119 @@ impl SpotifyApi {
         //     secret: Some("this-is-my-client-secret".to_string())
         // };
         // ```
-        let creds = match Credentials::from_env() {
-            None => {
-                println!("Missing .env file.");
-                exit(1);
-            },
-            Some(c) => c
+
+        // let creds = match Credentials::from_env() {
+        //     None => {
+        //         println!("Missing .env file.");
+        //         exit(1);
+        //     },
+        //     Some(c) => c
+        // };
+
+        // // Requires to be mutable because the internal token will be modified.
+        // self.spotify = ClientCredsSpotify::new(creds);
+
+        // // Obtaining the access token.  We don't need OAuth for this specific endpoint,
+        // // so `...` is used instead of `prompt_for_user_token`.
+        // self.spotify.request_token().await.unwrap();
+
+        // The credentials must be available in the environment. Enable
+        // `env-file` in order to read them from an `.env` file.
+        let creds = Credentials::from_env().unwrap();
+
+        // Using every possible scope
+        let scopes = scopes!(
+            "user-read-email",
+            "user-read-private",
+            "user-top-read",
+            "user-read-recently-played",
+            "user-follow-read",
+            "user-library-read",
+            "user-read-currently-playing",
+            "user-read-playback-state",
+            "user-read-playback-position",
+            "playlist-read-collaborative",
+            "playlist-read-private",
+            "user-follow-modify",
+            "user-library-modify",
+            "user-modify-playback-state",
+            "playlist-modify-public",
+            "playlist-modify-private",
+            "ugc-image-upload"
+        );
+        let oauth = OAuth::from_env(scopes).unwrap();
+
+        let config = Config {
+            token_cached: true,
+            token_refreshing: true,
+            ..Default::default()
         };
 
-        // Requires to be mutable because the internal token will be modified.
-        self.spotify = ClientCredsSpotify::new(creds);
+        let mut spotify = AuthCodeSpotify::with_config(creds, oauth, config);
 
-        // Obtaining the access token.  We don't need OAuth for this specific endpoint,
-        // so `...` is used instead of `prompt_for_user_token`.
-        self.spotify.request_token().await.unwrap();
+        let url = spotify.get_authorize_url(false).unwrap();
+        spotify.prompt_for_token(&url).await.unwrap();
+
+        {
+            let token = spotify.token.lock().await.unwrap();
+            println!("Access token: {}", &token.as_ref().unwrap().access_token);
+            println!(
+                "Refresh token: {}",
+                token.as_ref().unwrap().refresh_token.as_ref().unwrap()
+            );
+        }
+
+        self.spotify = spotify;
 
         self.is_ready = true;
     }
 
-    pub async fn transfer_playback_to_device(&self, deviceId: &str) {
+    pub async fn transfer_playback_to_device(&self, device_id: &str) {
         // https://developer.spotify.com/documentation/web-api/reference/#/operations/get-a-users-available-devices
         // https://developer.spotify.com/documentation/web-api/reference/#/operations/transfer-a-users-playback
     }
 
-    // pub async fn get_currently_playing_track(&self) -> Result<rspotify::model::FullTrack, rspotify::ClientError> {
-    //     // https://developer.spotify.com/documentation/android/
-    //     // On android it is possible to register a receiver to notify on "new track gets on top of the playing queue"
-    //     // If this also exists for other services (or can be hacked) we may have a way to record playback...
-    //     // Will this work even for remote playback on another device? It does usually have its state mirrored locally to the phone.
-    //     // note you can POLL for currently playing using web-api:
-    //     // https://developer.spotify.com/console/get-users-currently-playing-track/
-    //     // https://developer.spotify.com/console/get-recently-played/
+    pub async fn get_currently_playing_track(&self) -> Option<FullTrack> {
+        // https://developer.spotify.com/documentation/android/
+        // On android it is possible to register a receiver to notify on "new track gets on top of the playing queue"
+        // If this also exists for other services (or can be hacked) we may have a way to record playback...
+        // Will this work even for remote playback on another device? It does usually have its state mirrored locally to the phone.
+        // note you can POLL for currently playing using web-api:
+        // https://developer.spotify.com/console/get-users-currently-playing-track/
+        // https://developer.spotify.com/console/get-recently-played/
 
-    //     // this is much harder for apple music, but must be available somewhere within (thankfully there's an Android SDK as well):
-    //     // https://developer.apple.com/musickit/
-    //     // Running the requests
-    //     let track = self.spotify.current_playing(None).await;
-    //     track
-    // }
+        // this is much harder for apple music, but must be available somewhere within (thankfully there's an Android SDK as well):
+        // https://developer.apple.com/musickit/
+        // Running the requests
+        // FIXME(ahk): I literally do not understand what `None, None::<&[_]>` means and why there isn't a more sensible way to do empty/optional args
+        let playing_context = self.spotify.current_playing(None, None::<&[_]>).await;
+        let context = match playing_context {
+            Ok(context) => {
+                context
+            },
+            Err(err) => {
+                let msg = err.to_string();
+                println!("Err trying {msg}");
+                None
+            }
+        };
+
+        let playable = match context {
+            None => None,
+            Some(ctx) => match ctx.item {
+                None => None,
+                Some(playable) => Some(playable)
+            }
+        };
+
+        let track = match playable {
+            None => None,
+            Some(PlayableItem::Episode(_)) => None,
+            Some(PlayableItem::Track(t)) => Some(t)
+        };
+
+        track
+    }
 
     pub async fn get_saved_albums(&self) {
         // https://developer.spotify.com/documentation/web-api/reference/#/operations/get-users-saved-albums
