@@ -1,6 +1,14 @@
 // use rspotify::{model::AlbumId, prelude::*, ClientCredsSpotify, Credentials, SpotifyOAuth};
 
-use rspotify::{prelude::*, scopes, AuthCodeSpotify, Credentials, OAuth, Config, model::{AlbumId, PlayableItem, track, FullTrack}};
+use rspotify::{
+    prelude::*,
+    scopes,
+    AuthCodeSpotify,
+    Credentials,
+    OAuth,
+    Config,
+    model::{AlbumId, PlayableItem, FullTrack}
+};
 
 // NOTES:
 // - Looking at the number of individual requests we'll need to make to check if a resource is saved in an account
@@ -17,7 +25,8 @@ use rspotify::{prelude::*, scopes, AuthCodeSpotify, Credentials, OAuth, Config, 
 #[derive(Clone, Debug, Default)]
 pub struct SpotifyApi {
     is_ready: bool,
-    spotify: AuthCodeSpotify
+    spotify: AuthCodeSpotify,
+    currently_playing_track_history: Vec<FullTrack>,
 }
 
 impl SpotifyApi {
@@ -98,21 +107,21 @@ impl SpotifyApi {
         let url = spotify.get_authorize_url(false).unwrap();
         spotify.prompt_for_token(&url).await.unwrap();
 
-        {
-            let token = spotify.token.lock().await.unwrap();
-            println!("Access token: {}", &token.as_ref().unwrap().access_token);
-            println!(
-                "Refresh token: {}",
-                token.as_ref().unwrap().refresh_token.as_ref().unwrap()
-            );
-        }
+        // {
+        //     let token = spotify.token.lock().await.unwrap();
+        //     println!("Access token: {}", &token.as_ref().unwrap().access_token);
+        //     println!(
+        //         "Refresh token: {}",
+        //         token.as_ref().unwrap().refresh_token.as_ref().unwrap()
+        //     );
+        // }
 
         self.spotify = spotify;
 
         self.is_ready = true;
     }
 
-    pub async fn transfer_playback_to_device(&self, device_id: &str) {
+    pub async fn transfer_playback_to_device(&self, _device_id: &str) {
         // https://developer.spotify.com/documentation/web-api/reference/#/operations/get-a-users-available-devices
         // https://developer.spotify.com/documentation/web-api/reference/#/operations/transfer-a-users-playback
     }
@@ -181,5 +190,30 @@ impl SpotifyApi {
         let album_id = AlbumId::from_uri(uri).unwrap();
         let album = self.spotify.album(&album_id).await;
         album
+    }
+
+    pub async fn process_currently_playing_track(&mut self, track: FullTrack) -> Option<FullTrack> {
+        let opt_last_track = self.currently_playing_track_history.first();
+
+        let do_push = match opt_last_track {
+            None => true,
+            Some(last_track) => {
+                if last_track.name != track.name {
+                    true
+                } else {
+                    false
+                }
+            }
+        };
+
+        if do_push {
+            self.currently_playing_track_history.push(track.clone());
+        }
+
+        return Some(track);
+    }
+
+    pub async fn history_currently_playing(&self) -> Option<&Vec<FullTrack>> {
+        return Some(&self.currently_playing_track_history);
     }
 }

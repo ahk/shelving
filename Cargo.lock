@@ -1077,6 +1077,8 @@ name = "shelving"
 version = "0.2.0"
 dependencies = [
  "rspotify",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 
