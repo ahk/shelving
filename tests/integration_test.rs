@@ -39,7 +39,7 @@ mod spotify {
         let current = serde_json::from_str::<FullTrack>(FIXTURE_CURRENT_PLAYING_TRACK).unwrap();
         let track = spotify.process_currently_playing_track(current).await.unwrap();
         assert_eq!(track.name, "Stockton");
-        let h_tracks = spotify.history_currently_playing().await.unwrap();
+        let h_tracks = spotify.history_currently_playing().unwrap();
         let h_track = h_tracks.first().unwrap();
         assert_eq!(h_track.name, "Stockton");
     }

@@ -1,3 +1,10 @@
+#[macro_use]
+extern crate diesel;
+
+pub mod db;
+pub mod schema;
+pub mod models;
+
 // use rspotify::{model::AlbumId, prelude::*, ClientCredsSpotify, Credentials, SpotifyOAuth};
 
 use rspotify::{
