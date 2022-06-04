@@ -1,7 +1,9 @@
 use std::time::Duration;
 use async_std::task::sleep;
+use rspotify::model::FullTrack;
 
 use crate::db::Db;
+use crate::models::{TrackPlay, Track};
 use crate::spotify_api::SpotifyApi;
 
 // NOTES:
@@ -43,9 +45,34 @@ impl App {
             let opt_track = self.spotify_api.get_currently_playing_track().await;
             println!("currently playing: {:?}", opt_track);
 
+            // Check if we have a new track to record and buffer it
             self.spotify_api.process_currently_playing_track(opt_track);
-            db.
-            
+
+            // Handle any buffered play records
+            // TODO(ahk): we don't really need to buffer these play records if we always
+            // immediately consume and store them.
+            let spotify_tracks: Vec<FullTrack> = self.spotify_api.drain_current_playing();
+
+            for sp_track in spotify_tracks {
+                // Make a new Track to save with important fields from FullTrack
+                let new_track = Track::for_spotify_track(&sp_track);
+                
+                // Store it
+                let results = self.db.add_tracks(&vec![new_track]);
+
+                // load the updated record
+                let track = results
+                    .expect("run: Failed to return add_tracks results")
+                    .first()
+                    .expect("run: Couldn't find inserted track")
+                    .to_owned();
+                
+                // Record our play of this track
+                let track_play = TrackPlay::for_track(&track);
+                self.db.add_track_plays(&vec![track_play]);
+            }
+           
+            // Poll every so often
             sleep(Duration::from_secs(10)).await;
         }
 

@@ -201,6 +201,9 @@ impl SpotifyApi {
             if is_new_track {
                 self.currently_playing_track_queue.push(track.clone());
             }
+        } else {
+            // TODO(ahk) We have played at least one track but are now playing nothing
+            // might want to update something on the last track in currently playing queue?
         }
 
         // We update our last track status even when None, because that also will indicate a new track
