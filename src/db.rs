@@ -1,5 +1,4 @@
-extern crate dotenv;
-
+use dotenv::dotenv;
 use diesel::prelude::*;
 use diesel::SqliteConnection;
 use std::env;
@@ -25,7 +24,7 @@ impl Db {
             return true;
         }
 
-        // dotenv().ok();
+        dotenv().ok();
         // let pbuf = env::current_dir().unwrap();
         // println!("where: {:?}", pbuf);
         
@@ -53,11 +52,22 @@ impl Db {
         return self.connection.is_some();
     }
 
-    pub fn get_track_plays(&self) {
+    pub fn add_track_plays(&self, plays: &Vec<TrackPlay>) {
         use schema::track_play::dsl::*;
 
         if self.connection.is_none() {
             return;
+        }
+
+        let rows_inserted = diesel::insert_into(track_play).values(plays).execute(self.get_conn());
+            // .execute(self.get_conn());
+    }
+
+    pub fn get_track_plays(&self) -> Option<Vec<TrackPlay>> {
+        use schema::track_play::dsl::*;
+
+        if self.connection.is_none() {
+            return None;
         }
         
         let results = track_play.limit(5)
@@ -66,11 +76,13 @@ impl Db {
 
         println!("Displaying {} track plays", results.len());
 
-        for play in results {
+        for play in results.clone() {
             println!("{}", play.id.unwrap_or(0));
             println!("----------\n");
             println!("{}", play.track_id);
         }
+
+        return Some(results);
     }
 
     pub fn get_track(&self, track_id: i32) -> Option<Track> {

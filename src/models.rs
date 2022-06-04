@@ -1,4 +1,4 @@
-#[derive(Queryable)]
+#[derive(Queryable, Clone, Debug)]
 pub struct Track {
     pub id: Option<i32>,
     pub name: String,
@@ -6,7 +6,7 @@ pub struct Track {
     pub updated_at: String,
 }
 
-#[derive(Queryable)]
+#[derive(Queryable, Clone, Debug)]
 pub struct TrackPlay {
     pub id: Option<i32>,
     pub track_id: i32,

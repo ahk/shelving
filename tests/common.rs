@@ -1,4 +1,4 @@
-use shelving::SpotifyApi;
+use shelving::spotify_api::SpotifyApi;
 
 pub async fn setup() -> SpotifyApi {
     // some setup code, like creating required files/directories, starting
