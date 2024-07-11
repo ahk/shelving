@@ -1,12 +1,7 @@
+use async_std::io::empty;
 // use rspotify::{model::AlbumId, prelude::*, ClientCredsSpotify, Credentials, SpotifyOAuth};
 use rspotify::{
-    prelude::*,
-    scopes,
-    AuthCodeSpotify,
-    Credentials,
-    OAuth,
-    Config,
-    model::{AlbumId, PlayableItem, FullTrack}
+    model::{AlbumId, FullTrack, Market, PlayableItem}, prelude::*, scopes, AuthCodeSpotify, Config, Credentials, OAuth
 };
 
 #[derive(Clone, Debug, Default)]
@@ -90,7 +85,7 @@ impl SpotifyApi {
             ..Default::default()
         };
 
-        let mut spotify = AuthCodeSpotify::with_config(creds, oauth, config);
+        let spotify = AuthCodeSpotify::with_config(creds, oauth, config);
 
         let url = spotify.get_authorize_url(false).unwrap();
         spotify.prompt_for_token(&url).await.unwrap();
@@ -176,7 +171,7 @@ impl SpotifyApi {
     pub async fn get_album_by_spotify_uri(&self, uri: &str) -> Result<rspotify::model::FullAlbum, rspotify::ClientError> {
         // Running the requests
         let album_id = AlbumId::from_uri(uri).unwrap();
-        let album = self.spotify.album(&album_id).await;
+        let album = self.spotify.album(album_id, None).await;
         album
     }
 
