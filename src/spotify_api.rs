@@ -1,7 +1,8 @@
-use async_std::io::empty;
+use std::process::exit;
+
 // use rspotify::{model::AlbumId, prelude::*, ClientCredsSpotify, Credentials, SpotifyOAuth};
 use rspotify::{
-    model::{AlbumId, FullTrack, Market, PlayableItem}, prelude::*, scopes, AuthCodeSpotify, Config, Credentials, OAuth
+    model::{AlbumId, FullTrack, PlayableItem}, prelude::*, scopes, AuthCodeSpotify, Config, Credentials, OAuth
 };
 
 #[derive(Clone, Debug, Default)]
@@ -14,7 +15,7 @@ pub struct SpotifyApi {
 
 impl SpotifyApi {
     pub async fn setup_spotify_client(&mut self) {
-        if self.is_ready {
+       if self.is_ready {
             return;
         }
 
@@ -55,7 +56,13 @@ impl SpotifyApi {
 
         // The credentials must be available in the environment. Enable
         // `env-file` in order to read them from an `.env` file.
-        let creds = Credentials::from_env().unwrap();
+        let creds = match Credentials::from_env() {
+            None => {
+                println!("Missing .env file.");
+                exit(1);
+            },
+            Some(c) => c
+        };
 
         // Using every possible scope
         let scopes = scopes!(

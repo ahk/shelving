@@ -14,7 +14,7 @@ serde = { version = "1.0.147", features = ["derive"] }
 serde_json = "1.0.99"
 # rust's inability to add features to transitive deps (in this case libsqlite3-sys is a dep of diesel)
 # means that I must rely on "package unification" where somehow if I target the same dep that diesel uses
-# we'll end up with one target library that has a sum of all enabled features for all importers of that dep
+# we'll end up with one target librarly that has a sum of all enabled features for all importers of that dep
 # in the entire dependency graph of this package.
 # This is all so that I can select which platform dependency resolution system we're using for sqlite3
 # ("bundled" means it will build sqlite3 for us from a few possible versions of src it includes and statically link that into main program)
