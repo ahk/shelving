@@ -32,3 +32,8 @@ diesel --database-url 'db/shelving.sqlite3' migration generate create_track_play
 ```
 diesel --database-url 'db/shelving.sqlite3' migration run
 ```
+
+### Running tests matching a given string with printing
+```
+cargo test spotify::get_album_by_spotify_uri -- --nocapture
+```
